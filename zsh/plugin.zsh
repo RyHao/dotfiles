@@ -20,8 +20,6 @@ antigen bundles <<EOBUNDLES
 	# zsh-history-substring-search
 	zsh-users/zsh-history-substring-search
 
-  # zsh-nvm
-  lukechilds/zsh-nvm
 EOBUNDLES
 
 # Tell antigen that you're done.
