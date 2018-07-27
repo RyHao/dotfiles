@@ -7,8 +7,8 @@
     $ sudo sh -c "echo $(which zsh) >> /etc/shells" 
     $ chsh -s $(which zsh)
 
-#### Install openjdk via homebrew    
+#### Install java 8 via homebrew    
 
-    $ brew tap AdoptOpenJDK/openjdk
+    $ brew tap caskroom/versions
 
-    % brew install <version>
+    $ brew cask install java8
