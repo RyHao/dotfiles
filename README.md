@@ -6,3 +6,9 @@
 
     $ sudo sh -c "echo $(which zsh) >> /etc/shells" 
     $ chsh -s $(which zsh)
+
+#### Install openjdk via homebrew    
+
+    $ brew tap AdoptOpenJDK/openjdk
+
+    % brew install <version>
