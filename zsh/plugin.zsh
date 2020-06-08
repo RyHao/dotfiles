@@ -15,7 +15,7 @@ antigen bundles <<EOBUNDLES
 	zsh-users/zsh-completions
 
 	# autoenv
-	kennethreitz/autoenv
+	# kennethreitz/autoenv
 
 	# zsh-history-substring-search
 	zsh-users/zsh-history-substring-search
