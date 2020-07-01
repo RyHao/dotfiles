@@ -1,3 +1,7 @@
+#### yarn install / upgrade
+
+    $ curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
+
 #### Set yarn global bin
 
     $ yarn config set prefix ~/.yarn
