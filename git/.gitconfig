@@ -1,14 +1,39 @@
 [user]
-	name = Ryan Lyu
+	name = Ryan
 	email = ryhao.tw@gmail.com
 [alias]
-	lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow) %d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+	lg = log --graph --pretty=format:'%Cred%h%Creset %ad |%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset [%Cgreen%an%Creset]' --abbrev-commit --date=short
 	dsf = "!f() { [ \"$GIT_PREFIX\" != \"\" ] && cd "$GIT_PREFIX"; git diff --color $@ | diff-so-fancy | less --tabs=4 -RFX; }; f"
 	tg = tag -l --sort=v:refname
 	tgr = tag -l --sort=-v:refname
 	mr = !sh -c 'git fetch $1 merge-requests/$2/head:mr-$1-$2 && git checkout mr-$1-$2' -
+	ci = commit
+	cm = commit --amend -C HEAD
+	co = checkout
+	st = status
+	sts = status -s
+	br = branch
+	re = remote
+	di = diff
+	type = cat-file -t
+	dump = cat-file -p
+	lo = log --oneline
+	ls = log --show-signature
+	ll = log --pretty=format:'%h %ad | %s%d [%Cgreen%an%Creset]' --graph --date=short
+	alias = config --get-regexp ^alias\\.
+	attributes = "!f() { printf '%s\\n' '# --- 基本：自動偵測文字檔並正規化至 LF ---' '* text=auto' '' '# --- 一致化 LF（跨平台工具與 CI 友善） ---' '*.sh         text eol=lf' '*.bash       text eol=lf' '*.zsh        text eol=lf' '*.fish       text eol=lf' 'Makefile     text eol=lf' 'Dockerfile   text eol=lf' '.dockerignore text eol=lf' '.editorconfig text eol=lf' '.gitattributes text eol=lf' '.gitignore   text eol=lf' '*.md         text eol=lf' '*.txt        text eol=lf' '*.json       text eol=lf' '*.jsonc      text eol=lf' '*.yaml       text eol=lf' '*.yml        text eol=lf' '*.toml       text eol=lf' '*.ini        text eol=lf' '*.cfg        text eol=lf' '*.properties text eol=lf' '*.env        text eol=lf' '*.rc         text eol=lf' '' '# 程式碼檔案' '*.c          text eol=lf' '*.h          text eol=lf' '*.cpp        text eol=lf' '*.hpp        text eol=lf' '*.cc         text eol=lf' '*.cs         text eol=lf' '*.go         text eol=lf' '*.java       text eol=lf' '*.kt         text eol=lf' '*.kts        text eol=lf' '*.js         text eol=lf' '*.jsx        text eol=lf' '*.ts         text eol=lf' '*.tsx        text eol=lf' '*.mjs        text eol=lf' '*.cjs        text eol=lf' '*.py         text eol=lf' '*.rb         text eol=lf' '*.php        text eol=lf' '*.rs         text eol=lf' '*.swift      text eol=lf' '*.m          text eol=lf' '*.mm         text eol=lf' '*.scala      text eol=lf' '*.r          text eol=lf' '*.pl         text eol=lf' '*.lua        text eol=lf' '*.gradle     text eol=lf' '' '# 標記與前端相關' '*.css        text eol=lf' '*.scss       text eol=lf' '*.less       text eol=lf' '*.html       text eol=lf' '*.xhtml      text eol=lf' '*.xml        text eol=lf' '*.svg        text eol=lf' '' '# --- Windows 專用腳本與專案檔案：檢出時使用 CRLF ---' '*.bat        text eol=crlf' '*.cmd        text eol=crlf' '*.ps1        text eol=crlf' '*.sln        text eol=crlf' '*.vcxproj    text eol=crlf' '*.vcproj     text eol=crlf' '*.csproj     text eol=crlf' '*.vbproj     text eol=crlf' '*.props      text eol=crlf' '*.targets    text eol=crlf' '' '# --- 二進位檔案：停用行尾與 diff ---' '# 影像' '*.png  binary' '*.jpg  binary' '*.jpeg binary' '*.gif  binary' '*.webp binary' '*.ico  binary' '*.psd  binary' '*.ai   binary' '*.eps  binary' '' '# 影音' '*.mp3  binary' '*.wav  binary' '*.flac binary' '*.ogg  binary' '*.mp4  binary' '*.mov  binary' '*.avi  binary' '*.mkv  binary' '' '# 字型' '*.ttf  binary' '*.otf  binary' '*.woff binary' '*.woff2 binary' '' '# 文件與試算表' '*.pdf  binary' '*.doc  binary' '*.docx binary' '*.xls  binary' '*.xlsx binary' '*.ppt  binary' '*.pptx binary' '' '# 壓縮與封裝' '*.zip  binary' '*.7z   binary' '*.rar  binary' '*.gz   binary' '*.bz2  binary' '*.tar  binary' '*.jar  binary' '*.apk  binary' '*.ipa  binary' '' '# 執行檔與目標檔' '*.exe  binary' '*.dll  binary' '*.pdb  binary' '*.so   binary' '*.dylib binary' '*.a    binary' '*.lib  binary' '*.o    binary' '' '# 資料庫與快取' '*.sqlite binary' '*.db     binary' '' '# --- 降噪：縮小無意義 diff ---' '*.min.js -diff' '*.min.css -diff' '*.map    -diff' '' '# --- 選用：Git LFS（如已啟用，再解除註解） ---' '#*.psd filter=lfs diff=lfs merge=lfs -text' '#*.mp4 filter=lfs diff=lfs merge=lfs -text' '#*.zip filter=lfs diff=lfs merge=lfs -text' '' '# --- 選用：打包時不包含開發輔助檔 ---' '#/.github        export-ignore' '#/.gitignore     export-ignore' '#/.gitattributes export-ignore' '#/.editorconfig  export-ignore'; }; f"
+	ac = "!f() { if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then exit 0; fi; if ! command -v aichat >/dev/null 2>&1; then exit 0; fi; if git diff --cached --quiet; then if git diff --quiet && [ -z \"$(git ls-files --others --exclude-standard)\" ]; then exit 0; fi; git add -A; fi; deleted=$(git diff --cached --diff-filter=D --name-status | awk '{print $2}'); minified=$(git diff --cached --diff-filter=d --name-only | grep -E '\\.(min\\.js|min\\.css|min\\..+\\.js|min\\..+\\.css|-min\\.js|-min\\.css|bundle\\.js|bundle\\.min\\.js)$' || true); lockfiles=$(git diff --cached --diff-filter=d --name-only | grep -E '(package-lock\\.json|yarn\\.lock|pnpm-lock\\.yaml|bun\\.lockb|Bun\\.lock|Gemfile\\.lock|Cargo\\.lock|composer\\.lock|Podfile\\.lock|poetry\\.lock|Pipfile\\.lock|packages\\.lock\\.json|pubspec\\.lock|mix\\.lock|go\\.sum)$' || true); if [ -n \"$deleted\" ]; then echo \"已排除刪除的檔案:\"; echo \"$deleted\" | sed 's/^/  D /'; echo \"\"; fi; if [ -n \"$minified\" ]; then echo \"已排除壓縮檔案:\"; echo \"$minified\" | sed 's/^/  M /'; echo \"\"; fi; if [ -n \"$lockfiles\" ]; then echo \"已排除 lock 檔案:\"; echo \"$lockfiles\" | sed 's/^/  L /'; echo \"\"; fi; included=$(git diff --cached --diff-filter=d --name-status ':(exclude)*.min.js' ':(exclude)*.min.css' ':(exclude)*.min.*.js' ':(exclude)*.min.*.css' ':(exclude)*-min.js' ':(exclude)*-min.css' ':(exclude)*.bundle.js' ':(exclude)*.bundle.min.js' ':(exclude)package-lock.json' ':(exclude)yarn.lock' ':(exclude)pnpm-lock.yaml' ':(exclude)bun.lockb' ':(exclude)Bun.lock' ':(exclude)Gemfile.lock' ':(exclude)Cargo.lock' ':(exclude)composer.lock' ':(exclude)Podfile.lock' ':(exclude)poetry.lock' ':(exclude)Pipfile.lock' ':(exclude)packages.lock.json' ':(exclude)pubspec.lock' ':(exclude)mix.lock' ':(exclude)go.sum' | awk '{printf \"%s %s\\n\", $1, $2}'); if [ -n \"$included\" ]; then echo \"納入 AI 分析的檔案:\"; echo \"$included\" | sed 's/^A /  新增: /' | sed 's/^M /  修改: /' | sed 's/^R[0-9]* /  重新命名: /'; echo \"\"; fi; excluded_sections=\"\"; if [ -n \"$deleted\" ]; then deleted_lines=$(printf \"%s\\n\" \"$deleted\" | sed 's/^/  /'); if [ -z \"$excluded_sections\" ]; then excluded_sections=$(printf \"%s\\n%s\" \"刪除的檔案（僅列檔名/路徑）:\" \"$deleted_lines\"); else excluded_sections=$(printf \"%s\\n\\n%s\\n%s\" \"$excluded_sections\" \"刪除的檔案（僅列檔名/路徑）:\" \"$deleted_lines\"); fi; fi; if [ -n \"$minified\" ]; then minified_lines=$(printf \"%s\\n\" \"$minified\" | sed 's/^/  /'); if [ -z \"$excluded_sections\" ]; then excluded_sections=$(printf \"%s\\n%s\" \"壓縮檔案（僅列檔名/路徑）:\" \"$minified_lines\"); else excluded_sections=$(printf \"%s\\n\\n%s\\n%s\" \"$excluded_sections\" \"壓縮檔案（僅列檔名/路徑）:\" \"$minified_lines\"); fi; fi; if [ -n \"$lockfiles\" ]; then lock_lines=$(printf \"%s\\n\" \"$lockfiles\" | sed 's/^/  /'); if [ -z \"$excluded_sections\" ]; then excluded_sections=$(printf \"%s\\n%s\" \"lock 檔案（僅列檔名/路徑）:\" \"$lock_lines\"); else excluded_sections=$(printf \"%s\\n\\n%s\\n%s\" \"$excluded_sections\" \"lock 檔案（僅列檔名/路徑）:\" \"$lock_lines\"); fi; fi; diff=$(git diff --cached --diff-filter=d --ignore-all-space ':(exclude)*.min.js' ':(exclude)*.min.css' ':(exclude)*.min.*.js' ':(exclude)*.min.*.css' ':(exclude)*-min.js' ':(exclude)*-min.css' ':(exclude)*.bundle.js' ':(exclude)*.bundle.min.js' ':(exclude)package-lock.json' ':(exclude)yarn.lock' ':(exclude)pnpm-lock.yaml' ':(exclude)bun.lockb' ':(exclude)Bun.lock' ':(exclude)Gemfile.lock' ':(exclude)Cargo.lock' ':(exclude)composer.lock' ':(exclude)Podfile.lock' ':(exclude)poetry.lock' ':(exclude)Pipfile.lock' ':(exclude)packages.lock.json' ':(exclude)pubspec.lock' ':(exclude)mix.lock' ':(exclude)go.sum'); if [ -z \"$diff\" ] && [ -z \"$excluded_sections\" ]; then echo \"沒有可分析的變更內容（可能全部為二進位檔案或已排除的檔案）\"; exit 0; fi; if [ -n \"$excluded_sections\" ]; then prompt=$(printf \"%s\\n%s\\n\\n%s\" \"以下為排除檔案（僅列檔名/路徑，不含內容）:\" \"$excluded_sections\" \"$diff\"); else prompt=\"$diff\"; fi; char_count=$(printf \"%s\" \"$prompt\" | wc -c); if [ \"$char_count\" -gt 150000 ]; then echo \"變更內容過大（超過 150,000 字元），無法產生變更摘要。請考慮將變更拆分為多個較小的 commit。\"; exit 0; fi; msg=$(printf \"%s\" \"$prompt\" | aichat \"依據 diff 產生高解析度、技術導向、精準且簡潔的繁體中文 Git commit 訊息。採用 Conventional Commits 1.0.0 格式撰寫。不得包含多餘語句，只輸出 commit title 與必要的 body。\"); git commit -m \"$msg\" && git --no-pager log -1; }; f"
+	undo = "!f() { if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then echo \"[undo] skip: not a git repository\"; exit 0; fi; echo \"[undo] Undo Last Commit: git reset HEAD~\"; git reset HEAD~; }; f"
+	ignore = "!gi() { curl -sL https://www.gitignore.io/api/$@ ;}; gi"
+	iac = "!giac() { git init -b main && git add . && git commit -m 'Initial commit' ;}; giac"
+	cc = "!grcc() { git reset --hard && git clean -fdx ;}; read -p 'Do you want to run the <<< git reset --hard && git clean -fdx >>> command? (Y/N) ' answer && [[  == [Yy] ]] && grcc"
+	acp = "!gacp() { git add . && git commit --reuse-message=HEAD --amend && git push -f ;}; gacp"
+	aca = "!gaca() { git add . && git commit --reuse-message=HEAD --amend ;}; gaca"
 [core]
 	excludesfile = /Users/ryanlu/.gitignore_global
+	autocrlf = input
+	safecrlf = false
+	quotepath = false
 [difftool "sourcetree"]
 	cmd = opendiff \"$LOCAL\" \"$REMOTE\"
 	path = 
@@ -22,3 +47,17 @@
 	smudge = git-lfs smudge -- %f
 [init]
 	defaultBranch = main
+[help]
+	autocorrect = 30
+[push]
+	autoSetupRemote = true
+[color]
+	diff = auto
+	status = auto
+	branch = auto
+[credential "https://github.com"]
+	helper = 
+	helper = !/opt/homebrew/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !/opt/homebrew/bin/gh auth git-credential
