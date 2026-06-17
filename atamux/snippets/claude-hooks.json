@@ -1,0 +1,9 @@
+{
+  "_comment": "Reference only. install.sh merges these into ~/.claude/settings.json via jq (preserving any existing hooks). Each event appends a command running atamux-hook; atamux-hook no-ops unless inside the dedicated tmux session.",
+  "hooks": {
+    "SessionStart": [{ "hooks": [{ "type": "command", "command": "atamux-hook SessionStart" }] }],
+    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "atamux-hook UserPromptSubmit" }] }],
+    "Notification": [{ "hooks": [{ "type": "command", "command": "atamux-hook Notification" }] }],
+    "Stop": [{ "hooks": [{ "type": "command", "command": "atamux-hook Stop" }] }]
+  }
+}

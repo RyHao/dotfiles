@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# atamux-hook — invoked by Claude Code hooks to record per-pane session status.
+#
+# Usage (from ~/.claude/settings.json hooks):  atamux-hook <event>
+#   event ∈ SessionStart | UserPromptSubmit | PreToolUse | Notification | Stop | SubagentStop
+#
+# Design rules:
+#   - MUST be fast and MUST NOT ever fail or block Claude. Every path exits 0.
+#   - Only acts when running inside the dedicated `ata` tmux session; otherwise no-op.
+#   - Single source of truth for status is the state file it writes here.
+#
+# State file: $ATAMUX_STATE_DIR/<pane-key>  with one line:  <status>\t<product>\t<epoch>
+
+event="${1:-}"
+pane="${TMUX_PANE:-}"
+
+# Not inside tmux → not our concern.
+[ -n "$pane" ] || exit 0
+
+session_name="${ATAMUX_SESSION:-ata}"
+state_dir="${ATAMUX_STATE_DIR:-$HOME/.cache/atamux}"
+
+# Only act when this pane belongs to the dedicated atamux session.
+sess="$(tmux display-message -p -t "$pane" '#{session_name}' 2>/dev/null)" || exit 0
+[ "$sess" = "$session_name" ] || exit 0
+
+# Product comes free from ata's environment (it exports AT_AGENTS_PRODUCT).
+product="${AT_AGENTS_PRODUCT:-claude}"
+
+case "$event" in
+  UserPromptSubmit|PreToolUse) status="running" ;;
+  Notification)                status="waiting" ;;
+  Stop|SubagentStop)           status="idle" ;;
+  SessionStart)                status="idle" ;;
+  *)                           status="running" ;;
+esac
+
+case "$status" in
+  waiting) icon="●" ;;
+  running) icon="◐" ;;
+  idle)    icon="○" ;;
+  *)       icon="·" ;;
+esac
+
+# Filename-safe key from the pane id (e.g. "%47" → "47").
+key="${pane//[^0-9A-Za-z]/_}"
+
+mkdir -p "$state_dir" 2>/dev/null
+printf '%s\t%s\t%s\n' "$status" "$product" "$(date +%s)" > "$state_dir/$key" 2>/dev/null
+
+# Reflect status into the window name for a passive glance in the status bar.
+tmux rename-window -t "$pane" "$icon $product" 2>/dev/null
+
+exit 0

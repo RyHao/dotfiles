@@ -1,0 +1,229 @@
+#!/usr/bin/env bash
+# atamux — launch & switch multiple ata-driven Claude Code sessions in tmux.
+#
+#   atamux            switcher: fzf overview of running sessions + status, jump to one
+#   atamux new        launcher: fzf multi-select over `ata list`, spawn each as a window
+#   atamux help       this help
+#
+# All Claude windows live in one dedicated tmux session (default: "ata"),
+# one window per ata product. Status is reported by atamux-hook (Claude hooks)
+# into $ATAMUX_STATE_DIR and surfaced here + in window names.
+#
+# Test seams: source this file (guarded main) to unit-test the pure functions.
+# Set ATAMUX_SELECT=<product|index> (or comma list for `new`) to bypass fzf.
+
+set -u
+
+SESSION="${ATAMUX_SESSION:-ata}"
+STATE_DIR="${ATAMUX_STATE_DIR:-$HOME/.cache/atamux}"
+
+# ---------- pure helpers (no tmux, unit-testable) ----------
+
+# Strip ANSI SGR colour codes from stdin.
+strip_ansi() {
+  local esc=$'\033'
+  sed -E "s/${esc}\[[0-9;]*m//g"
+}
+
+# Parse `ata list` output (on stdin) → bare product names (first column).
+parse_ata_list() {
+  strip_ansi | awk 'NF{print $1}'
+}
+
+# status → glyph
+status_icon() {
+  case "$1" in
+    waiting) printf '●' ;;
+    running) printf '◐' ;;
+    idle)    printf '○' ;;
+    exited)  printf '✗' ;;
+    *)       printf '·' ;;
+  esac
+}
+
+# epoch_then now → "12s ago" / "3m ago" / "2h ago"
+human_since() {
+  local then="$1" now="$2" d
+  d=$(( now - then ))
+  (( d < 0 )) && d=0
+  if   (( d < 60 ));   then printf '%ds ago' "$d"
+  elif (( d < 3600 )); then printf '%dm ago' "$(( d / 60 ))"
+  else                      printf '%dh ago' "$(( d / 3600 ))"
+  fi
+}
+
+# tmux pane id (e.g. "%47") → filename-safe state key (matches atamux-hook).
+pane_key() {
+  local p="$1"
+  printf '%s' "${p//[^0-9A-Za-z]/_}"
+}
+
+# ---------- tmux-touching helpers ----------
+
+need_tmux() {
+  if [ -z "${TMUX:-}" ]; then
+    echo "atamux: must be run inside tmux" >&2
+    return 1
+  fi
+}
+
+# How to invoke `ata`. In a tmux popup / new window the shell isn't mise-activated,
+# so a bare `ata` may be missing — fall back to `mise exec -- ata` (mise lives on a
+# stable PATH). Echoes the command prefix; non-zero if ata can't be reached at all.
+ata_prefix() {
+  if command -v ata >/dev/null 2>&1; then
+    printf 'ata'
+  elif command -v mise >/dev/null 2>&1; then
+    printf 'mise exec -- ata'
+  else
+    return 1
+  fi
+}
+
+pause() { sleep 1.5; }
+
+# Read state file for a pane id into globals _status / _ts (empty if none).
+read_state() {
+  _status=""; _ts=""
+  local f="$STATE_DIR/$(pane_key "$1")"
+  [ -f "$f" ] || return 0
+  local _product
+  IFS=$'\t' read -r _status _product _ts < "$f" 2>/dev/null || true
+}
+
+# Drop state files whose pane no longer exists (handles tmux restart / closed windows).
+prune_state() {
+  [ -d "$STATE_DIR" ] || return 0
+  local live f key
+  live="$(tmux list-panes -a -F '#{pane_id}' 2>/dev/null | sed 's/[^0-9A-Za-z]/_/g')"
+  for f in "$STATE_DIR"/*; do
+    [ -e "$f" ] || continue
+    key="$(basename "$f")"
+    grep -qxF "$key" <<< "$live" 2>/dev/null || rm -f "$f"
+  done
+}
+
+ensure_session() {
+  ATAMUX_PLACEHOLDER_ID=""
+  tmux has-session -t "$SESSION" 2>/dev/null && return 0
+  ATAMUX_PLACEHOLDER_ID="$(tmux new-session -d -s "$SESSION" -P -F '#{window_id}' 2>/dev/null)"
+}
+
+cleanup_placeholder() {
+  [ -n "${ATAMUX_PLACEHOLDER_ID:-}" ] && tmux kill-window -t "$ATAMUX_PLACEHOLDER_ID" 2>/dev/null
+  return 0
+}
+
+# Launch one product as a window (or focus it if already open).
+launch_product() {
+  local p="$1" existing win
+  existing="$(tmux list-windows -t "$SESSION" -F '#{window_index} #{@atamux_product}' 2>/dev/null \
+              | awk -v p="$p" '$2==p{print $1; exit}')"
+  if [ -n "$existing" ]; then
+    tmux select-window -t "$SESSION:$existing" 2>/dev/null
+    return 0
+  fi
+  local ata_cmd; ata_cmd="$(ata_prefix)" || ata_cmd="ata"
+  win="$(tmux new-window -t "$SESSION" -n "$p" -P -F '#{window_id}' "$ata_cmd $p" 2>/dev/null)"
+  [ -n "$win" ] || return 1
+  tmux set-window-option -t "$win" @atamux_product "$p"   2>/dev/null
+  tmux set-window-option -t "$win" automatic-rename off    2>/dev/null
+  tmux set-window-option -t "$win" remain-on-exit on        2>/dev/null
+}
+
+# Emit switcher rows: "<window_index>\t<icon> <product>  <status> · <age>"
+build_list() {
+  local now idx pane product dead icon age
+  now="$(date +%s)"
+  while IFS='|' read -r idx pane product dead; do
+    [ -n "$idx" ] || continue
+    product="${product:-?}"
+    if [ "$dead" = "1" ]; then
+      icon="$(status_icon exited)"
+      printf '%s\t%s %s  exited\n' "$idx" "$icon" "$product"
+      continue
+    fi
+    read_state "$pane"
+    icon="$(status_icon "${_status:-idle}")"
+    age=""
+    [ -n "${_ts:-}" ] && age=" · $(human_since "$_ts" "$now")"
+    printf '%s\t%s %s  %s%s\n' "$idx" "$icon" "$product" "${_status:-idle}" "$age"
+  done < <(tmux list-panes -s -t "$SESSION" \
+             -F '#{window_index}|#{pane_id}|#{@atamux_product}|#{pane_dead}' 2>/dev/null)
+}
+
+# ---------- commands ----------
+
+cmd_new() {
+  need_tmux || return 1
+  local lines selected p ata_cmd
+  if ! ata_cmd="$(ata_prefix)"; then
+    echo "atamux: cannot find 'ata' (nor mise to run it)" >&2
+    pause; return 1
+  fi
+  lines="$($ata_cmd list 2>/dev/null | strip_ansi)"
+  if [ -z "$lines" ]; then
+    echo "atamux: 'ata list' returned nothing — is ata installed?" >&2
+    pause; return 1
+  fi
+  if [ -n "${ATAMUX_SELECT:-}" ]; then
+    selected="$(printf '%s\n' "${ATAMUX_SELECT//,/$'\n'}")"
+  else
+    selected="$(printf '%s\n' "$lines" \
+      | fzf --multi --ansi --prompt 'launch ⚡  ' --marker '✓ ' \
+            --header 'Tab: select multiple · Enter: launch' \
+      | awk 'NF{print $1}')"
+  fi
+  [ -n "$selected" ] || return 0
+  ensure_session
+  while IFS= read -r p; do
+    [ -n "$p" ] && launch_product "$p"
+  done <<< "$selected"
+  cleanup_placeholder
+  tmux switch-client -t "$SESSION" 2>/dev/null || tmux attach -t "$SESSION"
+}
+
+cmd_switch() {
+  need_tmux || return 1
+  prune_state
+  if ! tmux has-session -t "$SESSION" 2>/dev/null; then
+    echo "No '$SESSION' sessions yet. Press prefix+C to launch one."
+    pause; return 0
+  fi
+  local lines target
+  lines="$(build_list)"
+  if [ -z "$lines" ]; then
+    echo "No windows in '$SESSION'."
+    pause; return 0
+  fi
+  if [ -n "${ATAMUX_SELECT:-}" ]; then
+    target="${ATAMUX_SELECT}"
+  else
+    target="$(printf '%s\n' "$lines" \
+      | fzf --ansi --delimiter $'\t' --with-nth 2 --prompt 'switch →  ' \
+            --header 'Enter: jump · Ctrl-X: kill window' \
+            --bind "ctrl-x:execute-silent(tmux kill-window -t $SESSION:{1})+abort" \
+      | cut -f1)"
+  fi
+  [ -n "$target" ] || return 0
+  tmux select-window -t "$SESSION:$target" 2>/dev/null
+  tmux switch-client -t "$SESSION" 2>/dev/null || tmux attach -t "$SESSION"
+}
+
+usage() {
+  sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+}
+
+main() {
+  case "${1:-}" in
+    new)            cmd_new ;;
+    ""|switch|ls)   cmd_switch ;;
+    -h|--help|help) usage ;;
+    *) usage; return 1 ;;
+  esac
+}
+
+# Only run when executed, not when sourced (so tests can load pure helpers).
+if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+  main "$@"
+fi
