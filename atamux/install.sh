@@ -17,6 +17,10 @@ MARK_END="# <<< atamux <<<"
 info() { printf '  \033[32m✓\033[0m %s\n' "$1"; }
 warn() { printf '  \033[33m!\033[0m %s\n' "$1"; }
 
+# Write stdin to a file, following symlinks (so editing a symlinked dotfile
+# updates its target instead of replacing the link with a regular file).
+write_through() { cat > "$1"; }
+
 echo "Installing atamux from $HERE"
 
 # 1) Symlink scripts onto PATH ------------------------------------------------
@@ -37,7 +41,7 @@ if grep -qF "$MARK_BEGIN" "$TMUX_CONF"; then
   awk -v b="$MARK_BEGIN" -v e="$MARK_END" '
     $0==b{skip=1} !skip{print} $0==e{skip=0}
   ' "$TMUX_CONF" > "$tmp"
-  mv "$tmp" "$TMUX_CONF"
+  write_through "$TMUX_CONF" < "$tmp"; rm -f "$tmp"
 fi
 {
   echo "$MARK_BEGIN"

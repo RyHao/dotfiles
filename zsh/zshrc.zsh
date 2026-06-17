@@ -8,6 +8,9 @@ export PATH=${PATH}:${ANDROID_HOME}/platform-tools
 export PATH=${PATH}:~/.yarn/bin
 export PATH=${PATH}:~/.cargo/bin
 
+# FVM (Flutter Version Management) global default; per-project .fvmrc overrides via `fvm flutter`
+export PATH="$HOME/fvm/default/bin:$PATH"
+
 export N_PREFIX="$HOME/n"; [[ :$PATH: == *":$N_PREFIX/bin:"* ]] || PATH+=":$N_PREFIX/bin"  # Added by n-install (see http://git.io/n-install-repo).
 
 alias lg='lazygit'
@@ -23,3 +26,6 @@ alias ccd="caffeinate -i claude --permission-mode bypassPermissions --channels p
 alias cc="claude --permission-mode bypassPermissions"
 
 eval "$(/Users/ryanlyu/.local/bin/mise activate zsh)"
+
+# zoxide (smart cd; powers tmux-session-wizard directory suggestions)
+eval "$(zoxide init zsh)"

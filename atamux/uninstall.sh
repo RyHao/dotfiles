@@ -31,7 +31,7 @@ if [ -f "$TMUX_CONF" ] && grep -qF "$MARK_BEGIN" "$TMUX_CONF"; then
   awk -v b="$MARK_BEGIN" -v e="$MARK_END" '
     $0==b{skip=1} !skip{print} $0==e{skip=0}
   ' "$TMUX_CONF" > "$tmp"
-  mv "$tmp" "$TMUX_CONF"
+  cat "$tmp" > "$TMUX_CONF"; rm -f "$tmp"   # follow symlink, don't replace it
   info "removed tmux bindings from $TMUX_CONF"
 fi
 
